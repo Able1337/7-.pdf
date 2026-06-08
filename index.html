@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>7課 単語カード — тренировка слов</title>
+  <style>
+    :root { --bg:#f6f7fb; --card:#fff; --text:#18202a; --muted:#667085; --good:#16a34a; --bad:#dc2626; --accent:#2563eb; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);}
+    .wrap{max-width:760px;margin:0 auto;padding:22px} h1{font-size:24px;margin:0 0 8px}.sub{color:var(--muted);margin:0 0 18px}
+    .top{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.pill{background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:8px 12px;color:var(--muted)}
+    .card{min-height:280px;background:var(--card);border:1px solid #e5e7eb;border-radius:24px;box-shadow:0 12px 35px rgba(20,25,40,.08);display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;cursor:pointer;user-select:none;transition:.15s transform,.15s box-shadow}
+    .card:active{transform:scale(.99)} .ru{font-size:44px;font-weight:800;line-height:1.12}.jp{margin-top:22px;font-size:54px;font-weight:800;line-height:1.15}.hint{margin-top:18px;color:var(--muted)}
+    .buttons{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}button{border:0;border-radius:16px;padding:16px 18px;font-size:18px;font-weight:700;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.know{background:#dcfce7;color:#166534}.dont{background:#fee2e2;color:#991b1b}.restart,.primary{background:#dbeafe;color:#1e40af}.small{font-size:14px;padding:10px 12px;border-radius:12px}.secondary{background:#fff;border:1px solid #e5e7eb;color:#344054}
+    .stacks{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.stack{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:14px}.stack h3{margin:0 0 8px;font-size:16px}.items{max-height:150px;overflow:auto;color:var(--muted);font-size:14px}.item{padding:4px 0;border-bottom:1px dashed #eee}.done{background:#fff;border:1px solid #e5e7eb;border-radius:24px;padding:24px;text-align:center;display:none}.done h2{margin-top:0}.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}@media(max-width:560px){.ru{font-size:32px}.jp{font-size:42px}.card{min-height:230px}.buttons{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>7課 単語カード</h1>
+    <p class="sub">Нажми на карточку, чтобы открыть японское написание. Потом выбери: знаешь или не знаешь.</p>
+    <div class="top">
+      <div class="pill">Осталось: <b id="left">0</b></div><div class="pill">Знаю: <b id="knownCount">0</b></div><div class="pill">Не знаю: <b id="unknownCount">0</b></div><div class="pill">Раунд: <b id="round">1</b></div>
+      <button class="small secondary" id="shuffleBtn">Перемешать</button><button class="small secondary" id="resetBtn">Сначала</button>
+    </div>
+    <div id="game">
+      <div class="card" id="card"><div><div class="ru" id="ru"></div><div class="jp" id="jp" style="display:none"></div><div class="hint" id="hint">тыкни, чтобы показать ответ</div></div></div>
+      <div class="buttons"><button class="dont" id="dontBtn" disabled>Не знаю</button><button class="know" id="knowBtn" disabled>Знаю</button></div>
+    </div>
+    <div class="done" id="done"><h2>Раунд закончен</h2><p id="doneText"></p><div class="actions"><button class="primary" id="repeatUnknownBtn">Повторить “не знаю”</button><button class="restart" id="fullRestartBtn">Начать всё заново</button></div></div>
+    <div class="stacks"><div class="stack"><h3>Знаю</h3><div class="items" id="knownList"></div></div><div class="stack"><h3>Не знаю</h3><div class="items" id="unknownList"></div></div></div>
+  </div>
+<script>
+const ALL_CARDS = [
+  ['давать','あげます'],['получать','もらいます'],['посылать / отправлять','おくります'],['резать / нарезать','きります'],['брать в долг','かります'],['давать в долг','かします'],['изучать','ならいます'],['обучать','おしえます'],['рука, кисть','て'],['звонить [по телефону]','でんわ を かけます'],['ножницы','はさみ'],['персональный компьютер','パソコン'],['палочки','はし'],['ложка','スプーン'],['мобильный телефон','ケータイ'],['электронное письмо','メール'],['новогодняя открытка','ねんがじょう'],['дырокол','パンチ'],
+  ['степлер','ホッチキス'],['скотч','セロテープ'],['ластик','けしゴム'],['билет (на транспорт)','きっぷ'],['нож','ナイフ'],['вилка','フォーク'],['бумага','かみ'],['цветок','はな'],['рубашка','シャツ'],['подарок','プレゼント'],['деньги','おかね'],['багаж','にもつ'],['мой отец','ちち'],['Рождество','クリスマス'],['моя мать','はは'],['(чей-то) отец','おとうさん'],['(чья-то) мать','おかあさん'],['уже','もう'],
+  ['ещё не','まだ'],['с этих пор, скоро','これから'],['Как это прекрасно!','すてきですね'],['Добро пожаловать.','いらっしゃい'],['Заходите, пожалуйста.','どうぞ おあがりください'],['Извините за беспокойство.','しつれいします'],['Как насчёт?','いかがですか'],['Благодарю за угощение.','ごちそうさまでした'],['С удовольствием! / Приму','いただきます']
+].map(([ru,jp],i)=>({id:i,ru,jp}));
+let pool=[], current=null, shown=false, known=[], unknown=[], round=1;
+const $=id=>document.getElementById(id);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function start(cards=ALL_CARDS, keepStacks=false){ pool=shuffle([...cards]); current=null; shown=false; if(!keepStacks){known=[]; unknown=[]; round=1;} $('game').style.display='block'; $('done').style.display='none'; next(); render(); }
+function next(){ if(pool.length===0){finish();return;} current=pool.pop(); shown=false; $('ru').textContent=current.ru; $('jp').textContent=current.jp; $('jp').style.display='none'; $('hint').textContent='тыкни, чтобы показать ответ'; $('knowBtn').disabled=true; $('dontBtn').disabled=true; render(); }
+function reveal(){ if(!current)return; shown=true; $('jp').style.display='block'; $('hint').textContent='выбери стопку'; $('knowBtn').disabled=false; $('dontBtn').disabled=false; }
+function answer(isKnown){ if(!shown)return; (isKnown?known:unknown).push(current); next(); }
+function finish(){ $('game').style.display='none'; $('done').style.display='block'; $('doneText').textContent = unknown.length ? `Неизвестных карточек: ${unknown.length}. Их можно вернуть в пул и повторить.` : 'Все карточки отмечены как известные. Отлично!'; $('repeatUnknownBtn').style.display = unknown.length ? 'inline-block' : 'none'; render(); }
+function render(){ $('left').textContent=pool.length+(current?1:0); $('knownCount').textContent=known.length; $('unknownCount').textContent=unknown.length; $('round').textContent=round; $('knownList').innerHTML=known.map(c=>`<div class="item">${c.ru} — ${c.jp}</div>`).join('')||'пусто'; $('unknownList').innerHTML=unknown.map(c=>`<div class="item">${c.ru} — ${c.jp}</div>`).join('')||'пусто'; }
+$('card').onclick=reveal; $('knowBtn').onclick=()=>answer(true); $('dontBtn').onclick=()=>answer(false); $('shuffleBtn').onclick=()=>{pool=shuffle(pool);render()}; $('resetBtn').onclick=()=>start(); $('fullRestartBtn').onclick=()=>start(); $('repeatUnknownBtn').onclick=()=>{ const again=unknown; unknown=[]; round++; start(again,true); };
+start();
+</script>
+</body>
+</html>
