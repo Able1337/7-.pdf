@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>7課 単語カード</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="nav"><a class="btn small secondary" href="index.html">← к выбору урока</a></div>
+  <h1>7課 単語カード</h1>
+  <p class="sub">Слова из 7 урока.</p>
+  <div class="top">
+    <div class="pill">Осталось: <b id="left">0</b></div>
+    <div class="pill">Знаю: <b id="knownCount">0</b></div>
+    <div class="pill">Не знаю: <b id="unknownCount">0</b></div>
+    <div class="pill">Раунд: <b id="round">1</b></div>
+    <button class="small secondary" id="shuffleBtn">Перемешать</button>
+    <button class="small secondary" id="resetBtn">Сначала</button>
+  </div>
+  <div id="game">
+    <div class="card" id="card">
+      <div>
+        <div class="ru" id="ru"></div>
+        <div class="jp" id="jp" style="display:none"></div>
+        <div class="romaji" id="romaji" style="display:none"></div>
+        <div class="hint" id="hint">тыкни, чтобы показать ответ</div>
+      </div>
+    </div>
+    <div class="buttons">
+      <button class="dont" id="dontBtn" disabled>Не знаю</button>
+      <button class="know" id="knowBtn" disabled>Знаю</button>
+    </div>
+  </div>
+  <div class="done" id="done">
+    <h2>Раунд закончен</h2>
+    <p id="doneText"></p>
+    <div class="actions">
+      <button class="primary" id="repeatUnknownBtn">Повторить “не знаю”</button>
+      <button class="restart" id="fullRestartBtn">Начать всё заново</button>
+    </div>
+  </div>
+  <div class="stacks">
+    <div class="stack"><h3>Знаю</h3><div class="items" id="knownList"></div></div>
+    <div class="stack"><h3>Не знаю</h3><div class="items" id="unknownList"></div></div>
+  </div>
+</div>
+<script>
+const ALL_CARDS = [["давать", "あげます", "agemasu"], ["получать", "もらいます", "moraimasu"], ["посылать / отправлять", "おくります", "okurimasu"], ["резать / нарезать", "きります", "kirimasu"], ["брать в долг", "かります", "karimasu"], ["давать в долг", "かします", "kashimasu"], ["изучать", "ならいます", "naraimasu"], ["обучать", "おしえます", "oshiemasu"], ["рука, кисть", "て", "te"], ["звонить по телефону", "でんわ を かけます", "denwa o kakemasu"], ["ножницы", "はさみ", "hasami"], ["персональный компьютер", "パソコン", "pasokon"], ["палочки", "はし", "hashi"], ["ложка", "スプーン", "supuun"], ["мобильный телефон", "ケータイ", "keetai"], ["электронное письмо", "メール", "meeru"], ["новогодняя открытка", "ねんがじょう", "nengajou"], ["дырокол", "パンチ", "panchi"], ["степлер", "ホッチキス", "hotchikisu"], ["скотч", "セロテープ", "seroteepu"], ["ластик", "けしゴム", "keshigomu"], ["билет на транспорт", "きっぷ", "kippu"], ["нож", "ナイフ", "naifu"], ["вилка", "フォーク", "fooku"], ["бумага", "かみ", "kami"], ["цветок", "はな", "hana"], ["рубашка", "シャツ", "shatsu"], ["подарок", "プレゼント", "purezento"], ["деньги", "おかね", "okane"], ["багаж", "にもつ", "nimotsu"], ["мой отец", "ちち", "chichi"], ["Рождество", "クリスマス", "kurisumasu"], ["моя мать", "はは", "haha"], ["чей-то отец", "おとうさん", "otousan"], ["чья-то мать", "おかあさん", "okaasan"], ["уже", "もう", "mou"], ["ещё не", "まだ", "mada"], ["с этих пор, скоро", "これから", "korekara"], ["Как это прекрасно!", "すてきですね", "suteki desu ne"], ["Добро пожаловать", "いらっしゃい", "irasshai"], ["Заходите, пожалуйста", "どうぞ おあがりください", "douzo oagari kudasai"], ["Извините за беспокойство", "しつれいします", "shitsurei shimasu"], ["Как насчёт?", "いかがですか", "ikaga desu ka"], ["Благодарю за угощение", "ごちそうさまでした", "gochisousama deshita"], ["С удовольствием! / Приму", "いただきます", "itadakimasu"]].map((c,i)=>({id:i,ru:c[0],jp:c[1],romaji:c[2]}));
+let pool=[], current=null, shown=false, known=[], unknown=[], round=1;
+const $=id=>document.getElementById(id);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function start(cards=ALL_CARDS, keepStacks=false){
+  pool=shuffle([...cards]); current=null; shown=false;
+  if(!keepStacks){known=[]; unknown=[]; round=1;}
+  $('game').style.display='block'; $('done').style.display='none';
+  next(); render();
+}
+function next(){
+  if(pool.length===0){finish();return;}
+  current=pool.pop(); shown=false;
+  $('ru').textContent=current.ru;
+  $('jp').textContent=current.jp;
+  $('romaji').textContent=current.romaji;
+  $('jp').style.display='none';
+  $('romaji').style.display='none';
+  $('hint').textContent='тыкни, чтобы показать ответ';
+  $('knowBtn').disabled=true; $('dontBtn').disabled=true;
+  render();
+}
+function reveal(){
+  if(!current)return;
+  shown=true;
+  $('jp').style.display='block';
+  $('romaji').style.display='block';
+  $('hint').textContent='выбери стопку';
+  $('knowBtn').disabled=false; $('dontBtn').disabled=false;
+}
+function answer(isKnown){
+  if(!shown)return;
+  (isKnown?known:unknown).push(current);
+  next();
+}
+function finish(){
+  $('game').style.display='none';
+  $('done').style.display='block';
+  $('doneText').textContent = unknown.length
+    ? `Неизвестных карточек: ${unknown.length}. Их можно вернуть в пул и повторить.`
+    : 'Все карточки отмечены как известные. Отлично!';
+  $('repeatUnknownBtn').style.display = unknown.length ? 'inline-block' : 'none';
+  render();
+}
+function render(){
+  $('left').textContent=pool.length+(current?1:0);
+  $('knownCount').textContent=known.length;
+  $('unknownCount').textContent=unknown.length;
+  $('round').textContent=round;
+  $('knownList').innerHTML=known.map(c=>`<div class="item">${c.ru} — ${c.jp} — ${c.romaji}</div>`).join('')||'пусто';
+  $('unknownList').innerHTML=unknown.map(c=>`<div class="item">${c.ru} — ${c.jp} — ${c.romaji}</div>`).join('')||'пусто';
+}
+$('card').onclick=reveal;
+$('knowBtn').onclick=()=>answer(true);
+$('dontBtn').onclick=()=>answer(false);
+$('shuffleBtn').onclick=()=>{pool=shuffle(pool);render()};
+$('resetBtn').onclick=()=>start();
+$('fullRestartBtn').onclick=()=>start();
+$('repeatUnknownBtn').onclick=()=>{ const again=unknown; unknown=[]; round++; start(again,true); };
+start();
+</script>
+</body>
+</html>
